@@ -1,12 +1,29 @@
 import StockScreener from "@/components/StockScreener";
 
 export default function Index() {
+  const [shariahOnly, setShariahOnly] = useState(false);
   return (
     <main className="min-h-screen bg-[#030B1A] text-white">
       <div className="mx-auto max-w-7xl p-8">
 
         <div className="mb-8">
           <h1 className="text-5xl font-bold">MarketCompass</h1>
+
+        <div className="mt-4 flex items-center gap-3">
+          <span className="text-sm text-slate-400">Universe</span>
+          <button
+            onClick={() => setShariahOnly(false)}
+            className={`px-3 py-1 rounded-lg text-sm ${!shariahOnly ? "bg-sky-500 text-white" : "bg-slate-800 text-slate-300"}`}
+          >
+            Nifty 50
+          </button>
+          <button
+            onClick={() => setShariahOnly(true)}
+            className={`px-3 py-1 rounded-lg text-sm ${shariahOnly ? "bg-emerald-600 text-white" : "bg-slate-800 text-slate-300"}`}
+          >
+            Shariah
+          </button>
+        </div>
           <p className="mt-3 text-lg text-slate-400">
             Educational Multi-Timeframe Market Analysis
           </p>

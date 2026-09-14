@@ -1,31 +1,12 @@
-import { Candle } from "./marketEngine";
+const API = import.meta.env.VITE_SHEET_URL;
 
-export async function fetchHistory(ticker: string): Promise<Candle[]> {
-  const url =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=2y&interval=1d`;
+export async function fetchHistory(symbol: string) {
+  const res = await fetch(`${API}?symbol=${encodeURIComponent(symbol)}`);
 
-  const r = await fetch(url);
-  const j = await r.json();
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${symbol}`);
+  }
 
-  const result = j.chart.result[0];
-
-  const ts = result.timestamp;
-  const q = result.indicators.quote[0];
-
-  const out: Candle[] = [];
-
-  ts.forEach((t: number, i: number) => {
-    if (q.close[i] == null) return;
-
-    out.push({
-      date: new Date(t * 1000).toISOString().slice(0, 10),
-      open: q.open[i],
-      high: q.high[i],
-      low: q.low[i],
-      close: q.close[i],
-      volume: q.volume[i] ?? 0
-    });
-  });
-
-  return out;
+  const json = await res.json();
+  return json.chart.result[0];
 }

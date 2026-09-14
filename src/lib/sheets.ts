@@ -1,5 +1,5 @@
 export type UniverseRow = {
-  symbol: string;
+  ticker: string;
   name: string;
   sector: string;
 };
@@ -12,7 +12,7 @@ export async function loadUniverse(): Promise<UniverseRow[]> {
   const data = await res.json();
 
   return data.map((r: any) => ({
-    symbol: r.ticker ?? r.symbol ?? r.Symbol,
+    ticker: r.ticker ?? r.symbol ?? r.Symbol,
     name: r.name ?? r.Name,
     sector: r.sector ?? r.Sector,
   }));

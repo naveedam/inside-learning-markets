@@ -1,1 +1,0 @@
-ALTER TABLE public.broker_sessions ADD CONSTRAINT broker_sessions_user_id_broker_unique UNIQUE (user_id, broker);

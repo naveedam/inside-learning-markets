@@ -1,1 +1,0 @@
-ALTER TABLE public.broker_sessions ADD COLUMN IF NOT EXISTS consumer_key TEXT;

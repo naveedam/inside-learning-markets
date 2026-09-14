@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { universe } from "@/data/universe";
 import { loadUniverse } from "@/lib/sheets";
 import { screenUniverse, type StockSignal } from "@/lib/marketEngine";
 
-export default function StockScreener() {
+interface Props {
+  shariahOnly?: boolean;
+}
+
+export default function StockScreener({ shariahOnly = false }: Props) {
   const [stocks, setStocks] = useState<StockSignal[]>([]);
   const [loading, setLoading] = useState(true);
 

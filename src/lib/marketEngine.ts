@@ -118,3 +118,77 @@ export function monthly(c: Candle[]) {
     volume: rows.reduce((s, r) => s + r.volume, 0)
   }));
 }
+
+import { fetchHistory } from "./yahoo";
+import type { Stock } from "./sheets";
+
+export async function screenUniverse(
+  universe: Stock[]
+): Promise<StockSignal[]> {
+
+  const results: StockSignal[] = [];
+
+  for (const stock of universe) {
+
+    const daily = await fetchHistory(stock.ticker);
+
+    if (daily.length < 250) continue;
+
+    const closes = daily.map(c => c.close);
+
+    const w = weekly(daily);
+    const m = monthly(daily);
+
+    const high52 = Math.max(...daily.slice(-252).map(c => c.high));
+    const price = closes.at(-1)!;
+    const high52Distance = +(price / high52 * 100).toFixed(1);
+
+    const rsiDaily = rsi(closes);
+    const rsiWeekly = rsi(w.map(x => x.close));
+    const rsiMonthly = rsi(m.map(x => x.close));
+
+    const macdDaily = macd(closes);
+    const macdWeekly = macd(w.map(x => x.close));
+    const macdMonthly = macd(m.map(x => x.close));
+
+    const isBuy =
+      high52Distance < 96 &&
+      rsiDaily > 60 &&
+      rsiWeekly > 60 &&
+      rsiMonthly > 60 &&
+      macdDaily &&
+      macdWeekly &&
+      macdMonthly;
+
+    results.push({
+      ticker: stock.ticker,
+      name: stock.name,
+      sector: stock.sector,
+      price,
+      high52,
+      pctHigh: high52Distance,
+      rsiD: rsiDaily,
+      rsiW: rsiWeekly,
+      rsiM: rsiMonthly,
+      macdD: macdDaily,
+      macdW: macdWeekly,
+      macdM: macdMonthly,
+      classification: isBuy ? "bullish" : "weak",
+
+      // aliases expected by StockScreener
+      high52Distance,
+      rsiDaily,
+      rsiWeekly,
+      rsiMonthly,
+      macdDaily,
+      macdWeekly,
+      macdMonthly,
+      adx: false,
+      supertrend: false,
+      isBuy
+    } as any);
+
+  }
+
+  return results;
+}

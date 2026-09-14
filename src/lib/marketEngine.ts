@@ -1,5 +1,5 @@
 import { fetchHistory } from "./yahoo";
-import type { Stock } from "./sheets";
+import type { UniverseRow } from "./sheets";
 
 export interface Candle {
   date: string;
@@ -74,13 +74,14 @@ function macd(values: number[]) {
 }
 
 export async function screenUniverse(
-  universe: Stock[]
+  universe: UniverseRow[]
 ): Promise<StockSignal[]> {
 
   const results: StockSignal[] = [];
 
   for (const stock of universe) {
-    const daily = await fetchHistory(stock.ticker);
+    try {
+      const daily = await fetchHistory(stock.ticker);
 
     if (daily.length < 252) continue;
 
@@ -100,8 +101,8 @@ export async function screenUniverse(
       rsiDaily > 55 &&
       macdDaily;
 
-    results.push({
-      ticker: stock.ticker,
+      results.push({
+        ticker: stock.ticker,
       name: stock.name,
       sector: stock.sector,
       price,
@@ -111,7 +112,11 @@ export async function screenUniverse(
       adx: false,
       supertrend: false,
       isBuy
-    });
+      });
+    } catch (err) {
+      console.warn(`Skipping ${stock.ticker}:`, (err as Error).message);
+      continue;
+    }
   }
 
   return results;

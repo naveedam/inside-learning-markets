@@ -1,5 +1,3 @@
-const API = import.meta.env.VITE_SHEET_URL;
-
 export interface YahooCandle {
   date: string;
   open: number;
@@ -10,7 +8,7 @@ export interface YahooCandle {
 }
 
 export async function fetchHistory(symbol: string): Promise<YahooCandle[]> {
-  const res = await fetch(`${API}?symbol=${encodeURIComponent(symbol)}`);
+  const res = await fetch(`/api/yahoo?symbol=${encodeURIComponent(symbol)}`);
 
   if (!res.ok) throw new Error(`Failed to fetch ${symbol}`);
 

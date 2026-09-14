@@ -1,6 +1,5 @@
 import { useState } from "react";
 import StockScreener from "@/components/StockScreener";
-import { universe } from "@/data/universe";
 
 export default function Index() {
   const [shariahOnly, setShariahOnly] = useState(false);

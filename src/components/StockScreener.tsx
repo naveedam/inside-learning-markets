@@ -121,6 +121,10 @@ export default function StockScreener({ shariahOnly = false }: Props) {
                 Status ⓘ
               </th>
 
+              <th title="Whether the stock's sector is excluded under a simple sector-based Shariah screen (Banking, Insurance, Financial Services).">
+                Shariah ⓘ
+              </th>
+
             </tr>
           </thead>
 
@@ -129,6 +133,7 @@ export default function StockScreener({ shariahOnly = false }: Props) {
             {visibleStocks.map(s => {
               const sc = score(s);
               const st = status(sc);
+              const compliant = isShariahCompliant(s.sector);
 
               return (
                 <tr
@@ -176,6 +181,18 @@ export default function StockScreener({ shariahOnly = false }: Props) {
                       className={`px-2 py-1 rounded text-xs font-semibold ${st.cls}`}
                     >
                       {st.label}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        compliant
+                          ? "bg-emerald-950 text-emerald-300"
+                          : "bg-slate-800 text-slate-400"
+                      }`}
+                    >
+                      {compliant ? "Compliant" : "Excluded"}
                     </span>
                   </td>
 

@@ -1,129 +1,232 @@
-import { fetchHistory } from "./yahoo";
-import type { UniverseRow } from "./sheets";
-import { screenShariahCompliance, type ShariahResult } from "./shariah";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { loadUniverse } from "@/lib/sheets";
+import { screenUniverse, type StockSignal } from "@/lib/marketEngine";
+import type { ShariahResult } from "@/lib/shariah";
 
-export interface Candle {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
+interface Props {
+  shariahOnly?: boolean;
 }
 
-export interface StockSignal {
-  ticker: string;
-  name: string;
-  sector: string;
-  price: number;
-  high52Distance: number;
-  rsiDaily: number;
-  macdDaily: boolean;
-  adx: boolean;
-  supertrend: boolean;
-  isBuy: boolean;
-  shariah: ShariahResult;
-}
+export default function StockScreener({ shariahOnly = false }: Props) {
+  const [stocks, setStocks] = useState<StockSignal[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const RSI_PERIOD = 14;
+  useEffect(() => {
+    (async () => {
+      const sheetUniverse = await loadUniverse();
+      const results = await screenUniverse(sheetUniverse);
+      setStocks(results);
+      setLoading(false);
+    })();
+  }, []);
 
-function rsi(values: number[]) {
-  if (values.length < RSI_PERIOD + 1) return 0;
+  if (loading)
+    return <div className="p-8 text-slate-400">Scanning NSE universe...</div>;
 
-  let gain = 0, loss = 0;
+  const score = (s: StockSignal) => {
+    let x = 0;
+    if (s.rsiDaily > 60) x += 25;
+    else if (s.rsiDaily > 50) x += 15;
 
-  for (let i = 1; i <= RSI_PERIOD; i++) {
-    const diff = values[i] - values[i - 1];
-    if (diff > 0) gain += diff;
-    else loss -= diff;
-  }
+    if (s.macdDaily) x += 25;
 
-  let avgGain = gain / RSI_PERIOD;
-  let avgLoss = loss / RSI_PERIOD;
+    if (s.high52Distance > 95) x += 25;
+    else if (s.high52Distance > 85) x += 15;
 
-  for (let i = RSI_PERIOD + 1; i < values.length; i++) {
-    const diff = values[i] - values[i - 1];
-    const g = diff > 0 ? diff : 0;
-    const l = diff < 0 ? -diff : 0;
-    avgGain = (avgGain * 13 + g) / 14;
-    avgLoss = (avgLoss * 13 + l) / 14;
-  }
+    if (s.adx) x += 5;
+    if (s.supertrend) x += 5;
 
-  if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return +(100 - 100 / (1 + rs)).toFixed(2);
-}
+    return Math.min(100, x);
+  };
 
-function ema(values: number[], period: number) {
-  const k = 2 / (period + 1);
-  let prev = values[0];
-  const out = [prev];
+  const status = (v: number) => {
+    if (v >= 70)
+      return {
+        label: "High Alignment",
+        cls: "bg-emerald-600 text-white",
+        tip: "Daily, weekly and monthly momentum are strongly aligned. Educational observation only."
+      };
 
-  for (let i = 1; i < values.length; i++) {
-    prev = values[i] * k + prev * (1 - k);
-    out.push(prev);
-  }
+    if (v >= 40)
+      return {
+        label: "Building",
+        cls: "bg-amber-500 text-black",
+        tip: "Multiple technical characteristics are improving, but the overall structure is still developing."
+      };
 
-  return out;
-}
+    return {
+      label: "Developing",
+      cls: "text-slate-400",
+      tip: "Early stage market structure. The trend and momentum are still forming."
+    };
+  };
 
-function macd(values: number[]) {
-  const e12 = ema(values, 12);
-  const e26 = ema(values, 26);
-  const line = e12.map((v, i) => v - e26[i]);
-  const signal = ema(line, 9);
-  return line.at(-1)! > signal.at(-1)!;
-}
+  const shariahTooltip = (r: ShariahResult) => {
+    const lines = [
+      `Market cap: ₹${(r.marketCap / 1e7).toFixed(1)} Cr (min ₹30 Cr)`,
+      `Debt / Equity: ${r.debtToEquity.toFixed(2)} (limit 0.33)`,
+      `Debt / Market cap: ${(r.debtToMarketCap * 100).toFixed(1)}% (limit 33%)`,
+      `Interest income / Sales: ${(r.interestToSales * 100).toFixed(1)}% (limit 5%)`,
+      `Trade receivables / Market cap: ${(r.receivablesToMarketCap * 100).toFixed(1)}% (limit 33%)`,
+    ];
 
-export async function screenUniverse(
-  universe: UniverseRow[]
-): Promise<StockSignal[]> {
+    if (r.failedRules.length) lines.push("", `Failed: ${r.failedRules.join("; ")}`);
 
-  const results: StockSignal[] = [];
+    return lines.join("\n");
+  };
 
-  for (const stock of universe) {
-    try {
-      const [daily, shariah] = await Promise.all([
-        fetchHistory(stock.ticker),
-        screenShariahCompliance(stock.ticker),
-      ]);
+  const visibleStocks = stocks.filter(s => !shariahOnly || s.shariah.compliant);
 
-      if (daily.length < 252) continue;
+  const aligned = visibleStocks.filter(s => score(s) >= 70).length;
 
-      const closes = daily.map(c => c.close);
-      const highs = daily.map(c => c.high);
+  return (
+    <div className="space-y-6">
 
-      const price = closes.at(-1)!;
-      const high52 = Math.max(...highs.slice(-252));
-      const high52Distance = +(price / high52 * 100).toFixed(1);
+      <div className="grid grid-cols-3 gap-4">
 
-      const rsiDaily = rsi(closes);
-      const macdDaily = macd(closes);
+        <div className="bg-slate-900 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Universe</p>
+          <h2 className="text-3xl font-bold">{visibleStocks.length}</h2>
+        </div>
 
-      const isBuy =
-        high52Distance >= 80 &&
-        high52Distance <= 98 &&
-        rsiDaily > 55 &&
-        macdDaily;
+        <div className="bg-emerald-950 rounded-xl p-5">
+          <p className="text-emerald-300 text-sm">High Alignment</p>
+          <h2 className="text-3xl font-bold">{aligned}</h2>
+        </div>
 
-      results.push({
-        ticker: stock.ticker,
-        name: stock.name,
-        sector: stock.sector,
-        price,
-        high52Distance,
-        rsiDaily,
-        macdDaily,
-        adx: false,
-        supertrend: false,
-        isBuy,
-        shariah,
-      });
-    } catch (err) {
-      console.warn(`Skipping ${stock.ticker}:`, (err as Error).message);
-      continue;
-    }
-  }
+        <div className="bg-slate-900 rounded-xl p-5">
+          <p className="text-slate-400 text-sm">Last Updated</p>
+          <h2 className="text-lg font-semibold">
+            {new Date().toLocaleTimeString()}
+          </h2>
+        </div>
 
-  return results;
+      </div>
+
+      <div className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+
+        <table className="w-full">
+
+          <thead className="bg-slate-900">
+            <tr className="text-left text-slate-400 text-sm">
+
+              <th className="p-3">Company</th>
+
+              <th title="Learning Score combines RSI, MACD, proximity to the 52-week high and trend structure into a 0–100 educational metric.">
+                Score ⓘ
+              </th>
+
+              <th>Price</th>
+
+              <th title="Current price as a percentage of the 52-week high. Higher values indicate greater proximity to the yearly high.">
+                52W% ⓘ
+              </th>
+
+              <th title="Relative Strength Index measures momentum on a scale from 0 to 100.">
+                RSI ⓘ
+              </th>
+
+              <th title="Educational interpretation of the current market structure.">
+                Status ⓘ
+              </th>
+
+              <th title="Educational, ratio-based Shariah screen: market cap, debt/equity, debt/market cap, interest income/sales and receivables/market cap. Hover a badge for the breakdown.">
+                Shariah ⓘ
+              </th>
+
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {visibleStocks.map(s => {
+              const sc = score(s);
+              const st = status(sc);
+
+              return (
+                <tr
+                  key={s.ticker}
+                  className="border-t border-slate-800 hover:bg-slate-900/60"
+                >
+
+                  <td className="p-3">
+                    <Link
+                      to={`/stock/${encodeURIComponent(s.ticker)}`}
+                      className="font-semibold text-sky-400 hover:text-sky-300"
+                    >
+                      {s.name}
+                    </Link>
+
+                    <div className="text-xs text-slate-500">
+                      {s.ticker}
+                    </div>
+                  </td>
+
+                  <td>
+                    <div className="flex items-center gap-2">
+
+                      <div className="w-20 h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-sky-400"
+                          style={{ width: `${sc}%` }}
+                        />
+                      </div>
+
+                      <span className="font-semibold w-8">{sc}</span>
+
+                    </div>
+                  </td>
+
+                  <td>₹{s.price.toFixed(2)}</td>
+
+                  <td>{s.high52Distance.toFixed(1)}%</td>
+
+                  <td>{s.rsiDaily.toFixed(1)}</td>
+
+                  <td>
+                    <span
+                      title={st.tip}
+                      className={`px-2 py-1 rounded text-xs font-semibold ${st.cls}`}
+                    >
+                      {st.label}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      title={shariahTooltip(s.shariah)}
+                      className={`px-2 py-1 rounded text-xs font-semibold cursor-help ${
+                        s.shariah.compliant
+                          ? "bg-emerald-950 text-emerald-300"
+                          : "bg-slate-800 text-slate-400"
+                      }`}
+                    >
+                      {s.shariah.compliant ? "Compliant" : "Excluded"}
+                    </span>
+                  </td>
+
+                </tr>
+              );
+            })}
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
+        <p className="text-xs text-slate-400 leading-6">
+          <span className="font-semibold text-slate-300">
+            Educational Use Only.
+          </span>{" "}
+          MarketCompass is designed to help users learn technical market analysis.
+          It does not provide investment advice, stock recommendations, or trading
+          signals.
+        </p>
+      </div>
+
+    </div>
+  );
 }

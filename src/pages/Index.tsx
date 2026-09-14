@@ -31,7 +31,7 @@ export default function Index() {
           </p>
         </div>
 
-        <StockScreener />
+        <StockScreener shariahOnly={shariahOnly} />
 
         <div className="mt-10 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
           <h2 className="text-2xl font-semibold mb-5">

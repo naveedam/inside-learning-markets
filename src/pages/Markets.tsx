@@ -5,9 +5,9 @@ export default function Markets() {
     <main className="min-h-screen bg-[#030B1A] text-white">
       <div className="mx-auto max-w-7xl p-8">
         <div className="mb-8">
-          <h1 className="text-5xl font-bold">Inside Learning Markets</h1>
+          <h1 className="text-5xl font-bold">MarketCompass</h1>
           <p className="mt-2 text-lg text-slate-400">
-            Institutional Multi-Timeframe Stock Signal Generator
+            Multi-Timeframe Market Analysis & Learning Platform
           </p>
         </div>
 

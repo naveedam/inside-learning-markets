@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { NIFTY50 } from "@/data/universe";
 import { loadUniverse } from "@/lib/sheets";
 import { screenUniverse, type StockSignal } from "@/lib/marketEngine";
+import { isShariahCompliant } from "@/lib/shariah";
 
 interface Props {
   shariahOnly?: boolean;
@@ -63,8 +63,9 @@ export default function StockScreener({ shariahOnly = false }: Props) {
   };
 
   const visibleStocks = stocks.filter(s => {
-    const meta = NIFTY50.find(u => u.symbol === s.ticker);
-    return !shariahOnly || meta?.shariah;
+    const meta = stocks.find(x => x.ticker === s.ticker);
+    const sector = (meta as any)?.sector ?? "";
+    return !shariahOnly || isShariahCompliant(sector);
   });
 
   const aligned = visibleStocks.filter(s => score(s) >= 70).length;

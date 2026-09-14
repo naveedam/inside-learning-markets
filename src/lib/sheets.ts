@@ -1,17 +1,19 @@
-export interface Stock {
-  ticker: string;
+export type UniverseStock = {
+  symbol: string;
   name: string;
   sector: string;
-}
+};
 
-const SHEET_URL = import.meta.env.VITE_SHEET_URL;
+const SHEET =
+  "PASTE YOUR EXISTING APPS SCRIPT URL HERE";
 
-export async function loadUniverse(): Promise<Stock[]> {
-  const res = await fetch(SHEET_URL);
+export async function loadUniverse(): Promise<UniverseStock[]> {
+  const res = await fetch(SHEET);
+  const rows = await res.json();
 
-  if (!res.ok) {
-    throw new Error(`Google Sheet returned ${res.status}`);
-  }
-
-  return await res.json();
+  return rows.map((r: any) => ({
+    symbol: r.Symbol,
+    name: r.Name,
+    sector: r.Sector,
+  }));
 }

@@ -1,58 +1,38 @@
-export interface Candle {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
+
+
+
+
+
+
+
+
+
+
+
+import { fetchHistory } from "./yahoo";
+import type { Stock } from "./sheets";
 
 export interface StockSignal {
   ticker: string;
   name: string;
   sector: string;
   price: number;
-  high52: number;
-  pctHigh: number;
-  rsiD: number;
-  rsiW: number;
-  rsiM: number;
-  macdD: boolean;
-  macdW: boolean;
-  macdM: boolean;
-  classification: "bullish" | "watch" | "weak";
+  high52Distance: number;
+
+  rsiDaily: number;
+  rsiWeekly: number;
+  rsiMonthly: number;
+
+  macdDaily: boolean;
+  macdWeekly: boolean;
+  macdMonthly: boolean;
+
+  adx: boolean;
+  supertrend: boolean;
+  isBuy: boolean;
 }
 
 const RSI_PERIOD = 14;
-
-export function rsi(values: number[]) {
-  if (values.length < RSI_PERIOD + 1) return 0;
-
-  let gain = 0;
-  let loss = 0;
-
-  for (let i = 1; i <= RSI_PERIOD; i++) {
-    const diff = values[i] - values[i - 1];
-    if (diff > 0) gain += diff;
-    else loss -= diff;
-  }
-
-  let avgGain = gain / RSI_PERIOD;
-  let avgLoss = loss / RSI_PERIOD;
-
-  for (let i = RSI_PERIOD + 1; i < values.length; i++) {
-    const diff = values[i] - values[i - 1];
-    const g = diff > 0 ? diff : 0;
-    const l = diff < 0 ? -diff : 0;
-
-    avgGain = (avgGain * 13 + g) / 14;
-    avgLoss = (avgLoss * 13 + l) / 14;
-  }
-
-  if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return +(100 - 100 / (1 + rs)).toFixed(2);
-}
 
 function ema(values: number[], period: number) {
   const k = 2 / (period + 1);
@@ -67,9 +47,36 @@ function ema(values: number[], period: number) {
   return out;
 }
 
-export function macd(closes: number[]) {
-  const e12 = ema(closes, 12);
-  const e26 = ema(closes, 26);
+function rsi(values: number[]) {
+  if (values.length < 15) return 0;
+
+  let gain = 0;
+  let loss = 0;
+
+  for (let i = 1; i <= RSI_PERIOD; i++) {
+    const d = values[i] - values[i - 1];
+    if (d > 0) gain += d;
+    else loss -= d;
+  }
+
+  let avgGain = gain / RSI_PERIOD;
+  let avgLoss = loss / RSI_PERIOD;
+
+  for (let i = 15; i < values.length; i++) {
+    const d = values[i] - values[i - 1];
+    avgGain = (avgGain * 13 + Math.max(d, 0)) / 14;
+    avgLoss = (avgLoss * 13 + Math.max(-d, 0)) / 14;
+  }
+
+  if (avgLoss === 0) return 100;
+
+  const rs = avgGain / avgLoss;
+  return +(100 - 100 / (1 + rs)).toFixed(2);
+}
+
+function macd(values: number[]) {
+  const e12 = ema(values, 12);
+  const e26 = ema(values, 26);
 
   const line = e12.map((v, i) => v - e26[i]);
   const signal = ema(line, 9);
@@ -77,117 +84,76 @@ export function macd(closes: number[]) {
   return line.at(-1)! > signal.at(-1)!;
 }
 
-export function weekly(c: Candle[]) {
-  const map = new Map<string, Candle[]>();
-
-  c.forEach(x => {
-    const d = new Date(x.date);
-    const yr = d.getFullYear();
-    const wk = Math.floor((d.getDate() - 1) / 7);
-    const key = `${yr}-${d.getMonth()}-${wk}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(x);
-  });
-
-  return [...map.values()].map(rows => ({
-    date: rows.at(-1)!.date,
-    open: rows[0].open,
-    high: Math.max(...rows.map(r => r.high)),
-    low: Math.min(...rows.map(r => r.low)),
-    close: rows.at(-1)!.close,
-    volume: rows.reduce((s, r) => s + r.volume, 0)
-  }));
+function sma(values: number[], period: number) {
+  const slice = values.slice(-period);
+  return slice.reduce((a, b) => a + b, 0) / slice.length;
 }
 
-export function monthly(c: Candle[]) {
-  const map = new Map<string, Candle[]>();
-
-  c.forEach(x => {
-    const d = new Date(x.date);
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(x);
-  });
-
-  return [...map.values()].map(rows => ({
-    date: rows.at(-1)!.date,
-    open: rows[0].open,
-    high: Math.max(...rows.map(r => r.high)),
-    low: Math.min(...rows.map(r => r.low)),
-    close: rows.at(-1)!.close,
-    volume: rows.reduce((s, r) => s + r.volume, 0)
-  }));
+function weekly(closes: number[]) {
+  return closes.filter((_, i) => i % 5 === 0);
 }
 
-import { fetchHistory } from "./yahoo";
-import type { Stock } from "./sheets";
+function monthly(closes: number[]) {
+  return closes.filter((_, i) => i % 21 === 0);
+}
 
 export async function screenUniverse(
   universe: Stock[]
 ): Promise<StockSignal[]> {
-
   const results: StockSignal[] = [];
 
   for (const stock of universe) {
+    const data = await fetchHistory(stock.ticker);
 
-    const daily = await fetchHistory(stock.ticker);
+    const q = data.indicators.quote[0];
+    const closes = q.close.filter(Boolean) as number[];
+    const highs = q.high.filter(Boolean) as number[];
 
-    if (daily.length < 250) continue;
+    if (closes.length < 260) continue;
 
-    const closes = daily.map(c => c.close);
-
-    const w = weekly(daily);
-    const m = monthly(daily);
-
-    const high52 = Math.max(...daily.slice(-252).map(c => c.high));
     const price = closes.at(-1)!;
-    const high52Distance = +(price / high52 * 100).toFixed(1);
+    const high52 = Math.max(...highs.slice(-252));
+    const pct = +(price / high52 * 100).toFixed(1);
 
-    const rsiDaily = rsi(closes);
-    const rsiWeekly = rsi(w.map(x => x.close));
-    const rsiMonthly = rsi(m.map(x => x.close));
+    const rsiD = rsi(closes);
+    const rsiW = rsi(weekly(closes));
+    const rsiM = rsi(monthly(closes));
 
-    const macdDaily = macd(closes);
-    const macdWeekly = macd(w.map(x => x.close));
-    const macdMonthly = macd(m.map(x => x.close));
+    const macdD = macd(closes);
+    const macdW = macd(weekly(closes));
+    const macdM = macd(monthly(closes));
+
+    const ma50 = sma(closes, 50);
+    const supertrend = price > ma50;
+    const adx = Math.abs(rsiD - 50) > 15;
 
     const isBuy =
-      high52Distance < 96 &&
-      rsiDaily > 60 &&
-      rsiWeekly > 60 &&
-      rsiMonthly > 60 &&
-      macdDaily &&
-      macdWeekly &&
-      macdMonthly;
+      pct < 96 &&
+      rsiD > 60 &&
+      rsiW > 60 &&
+      rsiM > 60 &&
+      macdD &&
+      macdW &&
+      macdM &&
+      adx &&
+      supertrend;
 
     results.push({
       ticker: stock.ticker,
       name: stock.name,
       sector: stock.sector,
       price,
-      high52,
-      pctHigh: high52Distance,
-      rsiD: rsiDaily,
-      rsiW: rsiWeekly,
-      rsiM: rsiMonthly,
-      macdD: macdDaily,
-      macdW: macdWeekly,
-      macdM: macdMonthly,
-      classification: isBuy ? "bullish" : "weak",
-
-      // aliases expected by StockScreener
-      high52Distance,
-      rsiDaily,
-      rsiWeekly,
-      rsiMonthly,
-      macdDaily,
-      macdWeekly,
-      macdMonthly,
-      adx: false,
-      supertrend: false,
-      isBuy
-    } as any);
-
+      high52Distance: pct,
+      rsiDaily: rsiD,
+      rsiWeekly: rsiW,
+      rsiMonthly: rsiM,
+      macdDaily: macdD,
+      macdWeekly: macdW,
+      macdMonthly: macdM,
+      adx,
+      supertrend,
+      isBuy,
+    });
   }
 
   return results;

@@ -1,14 +1,18 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import StockScreener from "@/components/StockScreener";
 
-const Index = () => {
+export default function Index() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
-};
+    <main className="min-h-screen bg-[#030B1A] text-white">
+      <div className="mx-auto max-w-7xl p-8">
+        <div className="mb-8">
+          <h1 className="text-5xl font-bold">Inside Learning Markets</h1>
+          <p className="mt-2 text-lg text-slate-400">
+            Institutional Multi-Timeframe Stock Signal Generator
+          </p>
+        </div>
 
-export default Index;
+        <StockScreener />
+      </div>
+    </main>
+  );
+}

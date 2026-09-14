@@ -173,7 +173,6 @@ export default function StockDetail(){
         </p>
       </div></div>
           </div>
-        )}
 
         <div className="bg-slate-900 rounded-xl p-6 mt-8">
 

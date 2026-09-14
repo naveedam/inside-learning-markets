@@ -1,19 +1,24 @@
-export type UniverseStock = {
+const SHEET_URL =
+  "https://script.google.com/macros/s/AKfycbz7Xf29mRvH30K8N2_G6T5mkdZPNQ1UtDDZw8CbJFzn2liEEnqjcZzUua_Um5DPxVTN/exec";
+
+export type UniverseRow = {
   symbol: string;
   name: string;
   sector: string;
 };
 
-const SHEET =
-  "PASTE YOUR EXISTING APPS SCRIPT URL HERE";
+type SheetRow = {
+  ticker: string;
+  name: string;
+  sector: string;
+};
 
-export async function loadUniverse(): Promise<UniverseStock[]> {
-  const res = await fetch(SHEET);
-  const rows = await res.json();
+export async function loadUniverse(): Promise<UniverseRow[]> {
+  const rows: SheetRow[] = await fetch(SHEET_URL).then(r => r.json());
 
-  return rows.map((r: any) => ({
-    symbol: r.Symbol,
-    name: r.Name,
-    sector: r.Sector,
+  return rows.map(r => ({
+    symbol: r.ticker,
+    name: r.name,
+    sector: r.sector,
   }));
 }

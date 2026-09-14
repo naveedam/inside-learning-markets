@@ -136,7 +136,42 @@ export default function StockDetail(){
             </div>
 
             <div className="bg-slate-900 rounded-xl p-4">
-              <div className="text-slate-400 text-sm">Observations</div>
+              <div className="text-slate-400 text-sm">Observations
+
+      {/* ===== Learning Summary ===== */}
+      <div className="mt-6 rounded-xl bg-slate-900 p-5 border border-slate-800">
+        <h2 className="text-xl font-semibold mb-4">Learning Summary</h2>
+
+        <div className="grid md:grid-cols-3 gap-4">
+
+          <div className="rounded-lg bg-slate-800 p-4">
+            <div className="text-xs text-slate-400">Momentum</div>
+            <div className="mt-1 text-lg font-semibold">
+              RSI helps measure the strength of recent price movement.
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-slate-800 p-4">
+            <div className="text-xs text-slate-400">Trend</div>
+            <div className="mt-1 text-lg font-semibold">
+              Study whether price is building higher highs and higher lows.
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-slate-800 p-4">
+            <div className="text-xs text-slate-400">Structure</div>
+            <div className="mt-1 text-lg font-semibold">
+              Compare Daily, Weekly and Monthly views before drawing conclusions.
+            </div>
+          </div>
+
+        </div>
+
+        <p className="mt-4 text-xs text-slate-500">
+          Educational note: This page is designed to help learners interpret market structure.
+          It does not provide investment advice or trading recommendations.
+        </p>
+      </div></div>
               <div className="text-3xl font-bold">{data.length}</div>
             </div>
 

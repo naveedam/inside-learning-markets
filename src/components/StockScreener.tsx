@@ -23,19 +23,47 @@ export default function StockScreener() {
     let x = 0;
     if (s.rsiDaily > 60) x += 25;
     else if (s.rsiDaily > 50) x += 15;
+
     if (s.macdDaily) x += 25;
+
     if (s.high52Distance > 95) x += 25;
     else if (s.high52Distance > 85) x += 15;
+
     if (s.adx) x += 5;
     if (s.supertrend) x += 5;
+
     return Math.min(100, x);
+  };
+
+  const status = (v: number) => {
+    if (v >= 70)
+      return {
+        label: "High Alignment",
+        cls: "bg-emerald-600 text-white",
+        tip: "Daily, weekly and monthly momentum are strongly aligned. Educational observation only."
+      };
+
+    if (v >= 40)
+      return {
+        label: "Building",
+        cls: "bg-amber-500 text-black",
+        tip: "Multiple technical characteristics are improving, but the overall structure is still developing."
+      };
+
+    return {
+      label: "Developing",
+      cls: "text-slate-400",
+      tip: "Early stage market structure. The trend and momentum are still forming."
+    };
   };
 
   const aligned = stocks.filter(s => score(s) >= 70).length;
 
   return (
     <div className="space-y-6">
+
       <div className="grid grid-cols-3 gap-4">
+
         <div className="bg-slate-900 rounded-xl p-5">
           <p className="text-slate-400 text-sm">Universe</p>
           <h2 className="text-3xl font-bold">{stocks.length}</h2>
@@ -52,59 +80,102 @@ export default function StockScreener() {
             {new Date().toLocaleTimeString()}
           </h2>
         </div>
+
       </div>
 
       <div className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
+
         <table className="w-full">
+
           <thead className="bg-slate-900">
             <tr className="text-left text-slate-400 text-sm">
+
               <th className="p-3">Company</th>
-              <th>Score</th>
+
+              <th title="Learning Score combines RSI, MACD, proximity to the 52-week high and trend structure into a 0–100 educational metric.">
+                Score ⓘ
+              </th>
+
               <th>Price</th>
-              <th>52W%</th>
-              <th>RSI</th>
-              <th>Status</th>
+
+              <th title="Current price as a percentage of the 52-week high. Higher values indicate greater proximity to the yearly high.">
+                52W% ⓘ
+              </th>
+
+              <th title="Relative Strength Index measures momentum on a scale from 0 to 100.">
+                RSI ⓘ
+              </th>
+
+              <th title="Educational interpretation of the current market structure.">
+                Status ⓘ
+              </th>
+
             </tr>
           </thead>
 
           <tbody>
-            {stocks.map(s => (
-              <tr
-                key={s.ticker}
-                className="border-t border-slate-800 hover:bg-slate-900/60"
-              >
-                <td className="p-3">
-                  <Link
-                    to={`/stock/${encodeURIComponent(s.ticker)}`}
-                    className="font-semibold text-sky-400 hover:text-sky-300"
-                  >
-                    {s.name}
-                  </Link>
-                  <div className="text-xs text-slate-500">{s.ticker}</div>
-                </td>
 
-                <td className="font-semibold">{score(s)}</td>
-                <td>₹{s.price.toFixed(2)}</td>
-                <td>{s.high52Distance.toFixed(1)}%</td>
-                <td>{s.rsiDaily.toFixed(1)}</td>
+            {stocks.map(s => {
+              const sc = score(s);
+              const st = status(sc);
 
-                <td>
-                  {score(s) >= 70 ? (
-                    <span className="px-2 py-1 rounded bg-emerald-600 text-xs font-bold">
-                      High Alignment
+              return (
+                <tr
+                  key={s.ticker}
+                  className="border-t border-slate-800 hover:bg-slate-900/60"
+                >
+
+                  <td className="p-3">
+                    <Link
+                      to={`/stock/${encodeURIComponent(s.ticker)}`}
+                      className="font-semibold text-sky-400 hover:text-sky-300"
+                    >
+                      {s.name}
+                    </Link>
+
+                    <div className="text-xs text-slate-500">
+                      {s.ticker}
+                    </div>
+                  </td>
+
+                  <td>
+                    <div className="flex items-center gap-2">
+
+                      <div className="w-20 h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-sky-400"
+                          style={{ width: `${sc}%` }}
+                        />
+                      </div>
+
+                      <span className="font-semibold w-8">{sc}</span>
+
+                    </div>
+                  </td>
+
+                  <td>₹{s.price.toFixed(2)}</td>
+
+                  <td>{s.high52Distance.toFixed(1)}%</td>
+
+                  <td>{s.rsiDaily.toFixed(1)}</td>
+
+                  <td>
+                    <span
+                      title={st.tip}
+                      className={`px-2 py-1 rounded text-xs font-semibold ${st.cls}`}
+                    >
+                      {st.label}
                     </span>
-                  ) : score(s) >= 40 ? (
-                    <span className="px-2 py-1 rounded bg-amber-500 text-black text-xs font-bold">
-                      Building
-                    </span>
-                  ) : (
-                    <span className="text-slate-500 text-xs">Developing</span>
-                  )}
-                </td>
-              </tr>
-            ))}
+                  </td>
+
+                </tr>
+              );
+            })}
+
           </tbody>
+
         </table>
+
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
@@ -112,11 +183,12 @@ export default function StockScreener() {
           <span className="font-semibold text-slate-300">
             Educational Use Only.
           </span>{" "}
-          MarketCompass is designed to help users learn technical market
-          analysis. It does not provide investment advice, stock recommendations,
-          or trading signals.
+          MarketCompass is designed to help users learn technical market analysis.
+          It does not provide investment advice, stock recommendations, or trading
+          signals.
         </p>
       </div>
+
     </div>
   );
 }

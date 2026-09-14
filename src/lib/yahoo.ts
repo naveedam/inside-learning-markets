@@ -31,19 +31,21 @@ export async function fetchHistory(symbol: string): Promise<YahooCandle[]> {
 
 export interface Fundamentals {
   marketCap: number;
+  // Yahoo returns debtToEquity as a percentage (e.g. 45.2 meaning
+  // 45.2%), not a raw ratio — normalized to a ratio here (0.452).
+  debtToEquity: number;
+  // Yahoo only exposes an aggregate "totalDebt", not the
+  // secured/unsecured split Indian filings show — used as a
+  // best-effort stand-in for (Secured + Unsecured Debt).
   totalDebt: number;
-  totalCash: number;
-  // Yahoo's quoteSummary doesn't reliably break out interest-bearing
-  // securities separately from cash, so this is folded into totalCash
-  // above (kept as its own field for clarity if a better source is
-  // wired in later).
-  shortTermInvestments: number;
   totalRevenue: number;
-  // Best-effort: non-financial companies rarely report a dedicated
-  // "interest income" line in the free Yahoo feed. Defaults to 0 when
-  // absent rather than guessing — see shariah.ts for how this affects
-  // the ratio.
+  // Best-effort: many companies don't report a dedicated "interest
+  // income" line in the free Yahoo feed. Defaults to 0 when absent
+  // rather than guessing — see shariah.ts for how this affects the
+  // ratio.
   interestIncome: number;
+  // Trade receivables, from the balance sheet.
+  netReceivables: number;
 }
 
 export async function fetchFundamentals(symbol: string): Promise<Fundamentals> {
@@ -60,13 +62,15 @@ export async function fetchFundamentals(symbol: string): Promise<Fundamentals> {
   const fin = result.financialData ?? {};
   const incomeHistory =
     result.incomeStatementHistory?.incomeStatementHistory?.[0] ?? {};
+  const balanceSheet =
+    result.balanceSheetHistory?.balanceSheetStatements?.[0] ?? {};
 
   return {
     marketCap: price.marketCap?.raw ?? 0,
+    debtToEquity: (fin.debtToEquity?.raw ?? 0) / 100,
     totalDebt: fin.totalDebt?.raw ?? 0,
-    totalCash: fin.totalCash?.raw ?? 0,
-    shortTermInvestments: 0,
     totalRevenue: fin.totalRevenue?.raw ?? 0,
     interestIncome: incomeHistory.interestIncome?.raw ?? 0,
+    netReceivables: balanceSheet.netReceivables?.raw ?? 0,
   };
 }

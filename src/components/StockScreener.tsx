@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { universe } from "@/data/universe";
+import { NIFTY50 } from "@/data/universe";
 import { loadUniverse } from "@/lib/sheets";
 import { screenUniverse, type StockSignal } from "@/lib/marketEngine";
 
@@ -63,7 +63,7 @@ export default function StockScreener({ shariahOnly = false }: Props) {
   };
 
   const visibleStocks = stocks.filter(s => {
-    const meta = universe.find(u => u.ticker === s.ticker);
+    const meta = NIFTY50.find(u => u.symbol === s.ticker);
     return !shariahOnly || meta?.shariah;
   });
 

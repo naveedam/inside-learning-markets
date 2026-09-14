@@ -172,9 +172,6 @@ export default function StockDetail(){
           It does not provide investment advice or trading recommendations.
         </p>
       </div></div>
-              <div className="text-3xl font-bold">{data.length}</div>
-            </div>
-
           </div>
         )}
 

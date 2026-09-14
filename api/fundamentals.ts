@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return;
   }
 
-  const modules = "price,financialData,incomeStatementHistory";
+  const modules = "price,financialData,incomeStatementHistory,balanceSheetHistory";
   const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(
     symbol
   )}?modules=${modules}`;

@@ -11,17 +11,12 @@ import { fetchFundamentals } from "./yahoo";
 //
 // Data-quality caveats (documented, not hidden):
 //   - "Secured + Unsecured Debt" is approximated with Yahoo's single
-//     aggregate totalDebt figure — Yahoo doesn't expose the split
-//     Indian filings show.
-//   - "Interest Income" is often missing/zero in the free Yahoo feed
-//     for non-financial companies, since it's rarely broken out as
-//     its own income-statement line.
-//   - Missing data defaults to 0, which can make a rule look passed
-//     when it's actually just unmeasured. failedRules only reflects
-//     rules that were positively violated with the data available.
+//     aggregate totalDebt figure.
+//   - "Interest Income" is often missing in Yahoo's free feed.
+//   - Missing data defaults to 0.
 // ---------------------------------------------------------------------
 
-const MIN_MARKET_CAP = 300_000_000; // ₹30 Cr, in INR
+const MIN_MARKET_CAP = 300_000_000;
 const DEBT_TO_EQUITY_THRESHOLD = 0.33;
 const DEBT_TO_MARKET_CAP_THRESHOLD = 0.33;
 const INTEREST_TO_SALES_THRESHOLD = 0.05;
@@ -38,8 +33,6 @@ export interface ShariahResult {
 }
 
 function unavailableResult(reason: string): ShariahResult {
-  // Financial data couldn't be retrieved — default to non-compliant
-  // rather than silently passing a stock we couldn't actually screen.
   return {
     compliant: false,
     marketCap: 0,
@@ -51,60 +44,45 @@ function unavailableResult(reason: string): ShariahResult {
   };
 }
 
-/**
- * Runs the 5-rule financial-ratio Shariah screen for a single stock.
- * Purely quantitative — sector plays no role in the decision.
- */
 export async function screenShariahCompliance(
   ticker: string
 ): Promise<ShariahResult> {
   let f;
   try {
     f = await fetchFundamentals(ticker);
-  } catch (err) {
+  } catch {
     return unavailableResult("Financial data unavailable");
   }
 
   const failedRules: string[] = [];
 
-  // Rule 1: Market Capitalization > ₹30 Cr
   if (f.marketCap <= MIN_MARKET_CAP) {
-    failedRules.push(
-      `Market cap ₹${(f.marketCap / 1e7).toFixed(1)} Cr is at or below the ₹30 Cr minimum`
-    );
+    failedRules.push(`Market cap below ₹30 Cr`);
   }
 
-  // Rule 2: Debt to Equity < 0.33
   if (f.debtToEquity >= DEBT_TO_EQUITY_THRESHOLD) {
-    failedRules.push(
-      `Debt/Equity is ${f.debtToEquity.toFixed(2)} (limit 0.33)`
-    );
+    failedRules.push(`Debt/Equity ${f.debtToEquity.toFixed(2)} > 0.33`);
   }
 
-  // Rule 3: (Secured Debt + Unsecured Debt) / Market Cap < 0.33
-  const debtToMarketCap = f.marketCap > 0 ? f.totalDebt / f.marketCap : 0;
+  const debtToMarketCap =
+    f.marketCap > 0 ? f.totalDebt / f.marketCap : 0;
+
   if (debtToMarketCap >= DEBT_TO_MARKET_CAP_THRESHOLD) {
-    failedRules.push(
-      `Debt/Market cap is ${(debtToMarketCap * 100).toFixed(1)}% (limit 33%)`
-    );
+    failedRules.push(`Debt/Market Cap above 33%`);
   }
 
-  // Rule 4: Interest Income / Sales < 0.05
   const interestToSales =
     f.totalRevenue > 0 ? f.interestIncome / f.totalRevenue : 0;
+
   if (interestToSales >= INTEREST_TO_SALES_THRESHOLD) {
-    failedRules.push(
-      `Interest income/Sales is ${(interestToSales * 100).toFixed(1)}% (limit 5%)`
-    );
+    failedRules.push(`Interest Income/Sales above 5%`);
   }
 
-  // Rule 5: Trade Receivables / Market Cap < 0.33
   const receivablesToMarketCap =
     f.marketCap > 0 ? f.netReceivables / f.marketCap : 0;
+
   if (receivablesToMarketCap >= RECEIVABLES_TO_MARKET_CAP_THRESHOLD) {
-    failedRules.push(
-      `Trade receivables/Market cap is ${(receivablesToMarketCap * 100).toFixed(1)}% (limit 33%)`
-    );
+    failedRules.push(`Receivables/Market Cap above 33%`);
   }
 
   return {

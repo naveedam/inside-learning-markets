@@ -244,6 +244,42 @@ export default function StockDetail(){
             <h3 className="font-semibold mb-3">
               Momentum (RSI)
             </h3>
+
+              <div className="grid md:grid-cols-3 gap-4 my-6">
+
+                <div className="rounded-xl bg-slate-800/60 border border-cyan-500/20 p-4">
+                  <div className="text-cyan-400 text-xs font-semibold uppercase tracking-wide mb-2">Momentum</div>
+                  <div className="text-xl font-bold text-white mb-2">RSI</div>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    RSI measures the strength of recent price movement and helps identify improving or weakening momentum.
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-slate-800/60 border border-emerald-500/20 p-4">
+                  <div className="text-emerald-400 text-xs font-semibold uppercase tracking-wide mb-2">Trend</div>
+                  <div className="text-xl font-bold text-white mb-2">Higher Highs</div>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    Study whether price is building higher highs and higher lows to understand trend development.
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-slate-800/60 border border-amber-500/20 p-4">
+                  <div className="text-amber-400 text-xs font-semibold uppercase tracking-wide mb-2">Structure</div>
+                  <div className="text-xl font-bold text-white mb-2">Multi-Timeframe</div>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    Compare Daily, Weekly and Monthly structure before forming an educational market view.
+                  </p>
+                </div>
+
+              </div>
+
+              <div className="rounded-xl bg-gradient-to-r from-cyan-900/20 to-emerald-900/20 border border-cyan-500/20 p-4 mb-6">
+                <div className="font-semibold text-cyan-300 mb-2">📘 How to read this page</div>
+                <p className="text-slate-300 text-sm leading-relaxed">
+                  Start with price structure, then evaluate momentum, and finally compare higher timeframes. MarketCompass is designed for learning—not investment advice.
+                </p>
+              </div>
+
             <div className="text-5xl font-bold text-sky-400">
               {last ? Math.round((last.close-minClose)/(maxClose-minClose||1)*100) : 0}
             </div>

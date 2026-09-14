@@ -6,6 +6,29 @@ type Candle={
   date:string; open:number; high:number; low:number; close:number; volume:number;
 };
 
+
+const calculateRSI = (values: number[], period = 14) => {
+  if (values.length < period + 1) return 0;
+  let gain = 0, loss = 0;
+  for (let i = 1; i <= period; i++) {
+    const d = values[i] - values[i - 1];
+    if (d > 0) gain += d;
+    else loss -= d;
+  }
+  let avgGain = gain / period;
+  let avgLoss = loss / period;
+  for (let i = period + 1; i < values.length; i++) {
+    const d = values[i] - values[i - 1];
+    const g = d > 0 ? d : 0;
+    const l = d < 0 ? -d : 0;
+    avgGain = (avgGain * 13 + g) / 14;
+    avgLoss = (avgLoss * 13 + l) / 14;
+  }
+  if (avgLoss === 0) return 100;
+  const rs = avgGain / avgLoss;
+  return +(100 - 100 / (1 + rs)).toFixed(1);
+};
+
 export default function StockDetail(){
   const { ticker="" }=useParams();
   const [rows,setRows]=useState<Candle[]>([]);

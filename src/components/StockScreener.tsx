@@ -14,8 +14,8 @@ export default function StockScreener({ shariahOnly = false }: Props) {
 
   useEffect(() => {
     (async () => {
-      const universe = await loadUniverse();
-      const results = await screenUniverse(universe);
+      const sheetUniverse = await loadUniverse();
+      const results = await screenUniverse(sheetUniverse);
       setStocks(results);
       setLoading(false);
     })();
@@ -62,7 +62,12 @@ export default function StockScreener({ shariahOnly = false }: Props) {
     };
   };
 
-  const aligned = stocks.filter(s => score(s) >= 70).length;
+  const visibleStocks = stocks.filter(s => {
+    const meta = universe.find(u => u.ticker === s.ticker);
+    return !shariahOnly || meta?.shariah;
+  });
+
+  const aligned = visibleStocks.filter(s => score(s) >= 70).length;
 
   return (
     <div className="space-y-6">
@@ -71,7 +76,7 @@ export default function StockScreener({ shariahOnly = false }: Props) {
 
         <div className="bg-slate-900 rounded-xl p-5">
           <p className="text-slate-400 text-sm">Universe</p>
-          <h2 className="text-3xl font-bold">{stocks.length}</h2>
+          <h2 className="text-3xl font-bold">{visibleStocks.length}</h2>
         </div>
 
         <div className="bg-emerald-950 rounded-xl p-5">
@@ -120,7 +125,7 @@ export default function StockScreener({ shariahOnly = false }: Props) {
 
           <tbody>
 
-            {stocks.map(s => {
+            {visibleStocks.map(s => {
               const sc = score(s);
               const st = status(sc);
 

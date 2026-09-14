@@ -147,42 +147,7 @@ export default function StockDetail(){
 
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-semibold">
-              
-Price Structure
-
-          {/* ===== Market Structure Dashboard ===== */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="rounded-lg bg-slate-800 p-4">
-              <p className="text-slate-400 text-xs">RSI</p>
-              <p className="text-2xl font-bold">{rsi}</p>
-              <p className="text-xs text-slate-500">
-                {rsi >= 60 ? "Strong" : rsi >= 45 ? "Neutral" : "Weak"}
-              </p>
-            </div>
-
-            <div className="rounded-lg bg-slate-800 p-4">
-              <p className="text-slate-400 text-xs">2Y High</p>
-              <p className="text-2xl font-bold">{((current/high)*100).toFixed(1)}%</p>
-              <p className="text-xs text-slate-500">Relative position</p>
-            </div>
-
-            <div className="rounded-lg bg-slate-800 p-4">
-              <p className="text-slate-400 text-xs">Trend</p>
-              <p className="text-2xl font-bold">
-                {current > closes.slice(-50).reduce((a,b)=>a+b,0)/50 ? "Bullish" : "Bearish"}
-              </p>
-              <p className="text-xs text-slate-500">50-day structure</p>
-            </div>
-
-            <div className="rounded-lg bg-slate-800 p-4">
-              <p className="text-slate-400 text-xs">Learning Phase</p>
-              <p className="text-2xl font-bold text-cyan-400">
-                {rsi >= 60 ? "Building" : rsi >= 45 ? "Developing" : "Weak"}
-              </p>
-              <p className="text-xs text-slate-500">Educational only</p>
-            </div>
-          </div>
-
+              Price Structure
             </h2>
 
             <div className="flex gap-2">

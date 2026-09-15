@@ -1,13 +1,9 @@
 {
-  "functions": {
-    "api/*.ts": {
-      "runtime": "@vercel/node@3.2.24"
-    }
-  },
   "rewrites": [
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
-  ]
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/yahoo.ts": { "maxDuration": 10 },
+    "api/fundamentals.ts": { "maxDuration": 10 }
+  }
 }

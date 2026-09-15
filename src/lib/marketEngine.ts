@@ -119,3 +119,11 @@ export async function screenUniverse(
         isBuy,
         shariah,
       });
+    } catch (err) {
+      console.warn(`Skipping ${stock.ticker}:`, (err as Error).message);
+      continue;
+    }
+  }
+
+  return results;
+}

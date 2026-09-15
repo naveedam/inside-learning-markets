@@ -63,6 +63,10 @@ export default function StockScreener({ shariahOnly = false }: Props) {
   };
 
   const shariahTooltip = (r: ShariahResult) => {
+    if (!r.dataAvailable) {
+      return `Data unavailable — ${r.failedRules[0] ?? "could not fetch financials"}`;
+    }
+
     const lines = [
       `Market cap: ₹${(r.marketCap / 1e7).toFixed(1)} Cr (min ₹30 Cr)`,
       `Debt / Equity: ${r.debtToEquity.toFixed(2)} (limit 0.33)`,
@@ -197,12 +201,18 @@ export default function StockScreener({ shariahOnly = false }: Props) {
                     <span
                       title={shariahTooltip(s.shariah)}
                       className={`px-2 py-1 rounded text-xs font-semibold cursor-help ${
-                        s.shariah.compliant
+                        !s.shariah.dataAvailable
+                          ? "bg-amber-950 text-amber-300"
+                          : s.shariah.compliant
                           ? "bg-emerald-950 text-emerald-300"
                           : "bg-slate-800 text-slate-400"
                       }`}
                     >
-                      {s.shariah.compliant ? "Compliant" : "Excluded"}
+                      {!s.shariah.dataAvailable
+                        ? "Data Unavailable"
+                        : s.shariah.compliant
+                        ? "Compliant"
+                        : "Excluded"}
                     </span>
                   </td>
 

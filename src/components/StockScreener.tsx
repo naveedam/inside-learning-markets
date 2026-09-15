@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { loadUniverse } from "@/lib/sheets";
 import { screenUniverse, type StockSignal } from "@/lib/marketEngine";
-import { isShariahCompliant } from "@/lib/shariah";
+import type { ShariahResult } from "@/lib/shariah";
 
 interface Props {
   shariahOnly?: boolean;
@@ -62,11 +62,21 @@ export default function StockScreener({ shariahOnly = false }: Props) {
     };
   };
 
-  const visibleStocks = stocks.filter(s => {
-    const meta = stocks.find(x => x.ticker === s.ticker);
-    const sector = (meta as any)?.sector ?? "";
-    return !shariahOnly || isShariahCompliant(sector);
-  });
+  const shariahTooltip = (r: ShariahResult) => {
+    const lines = [
+      `Market cap: ₹${(r.marketCap / 1e7).toFixed(1)} Cr (min ₹30 Cr)`,
+      `Debt / Equity: ${r.debtToEquity.toFixed(2)} (limit 0.33)`,
+      `Debt / Market cap: ${(r.debtToMarketCap * 100).toFixed(1)}% (limit 33%)`,
+      `Interest income / Sales: ${(r.interestToSales * 100).toFixed(1)}% (limit 5%)`,
+      `Trade receivables / Market cap: ${(r.receivablesToMarketCap * 100).toFixed(1)}% (limit 33%)`,
+    ];
+
+    if (r.failedRules.length) lines.push("", `Failed: ${r.failedRules.join("; ")}`);
+
+    return lines.join("\n");
+  };
+
+  const visibleStocks = stocks.filter(s => !shariahOnly || s.shariah.compliant);
 
   const aligned = visibleStocks.filter(s => score(s) >= 70).length;
 
@@ -121,7 +131,7 @@ export default function StockScreener({ shariahOnly = false }: Props) {
                 Status ⓘ
               </th>
 
-              <th title="Whether the stock's sector is excluded under a simple sector-based Shariah screen (Banking, Insurance, Financial Services).">
+              <th title="Educational, ratio-based Shariah screen: market cap, debt/equity, debt/market cap, interest income/sales and receivables/market cap. Hover a badge for the breakdown.">
                 Shariah ⓘ
               </th>
 
@@ -133,7 +143,6 @@ export default function StockScreener({ shariahOnly = false }: Props) {
             {visibleStocks.map(s => {
               const sc = score(s);
               const st = status(sc);
-              const compliant = isShariahCompliant(s.sector);
 
               return (
                 <tr
@@ -186,13 +195,14 @@ export default function StockScreener({ shariahOnly = false }: Props) {
 
                   <td>
                     <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        compliant
+                      title={shariahTooltip(s.shariah)}
+                      className={`px-2 py-1 rounded text-xs font-semibold cursor-help ${
+                        s.shariah.compliant
                           ? "bg-emerald-950 text-emerald-300"
                           : "bg-slate-800 text-slate-400"
                       }`}
                     >
-                      {compliant ? "Compliant" : "Excluded"}
+                      {s.shariah.compliant ? "Compliant" : "Excluded"}
                     </span>
                   </td>
 

@@ -1,5 +1,6 @@
 import { fetchHistory } from "./yahoo";
-import type { Stock } from "./sheets";
+import type { UniverseRow } from "./sheets";
+import { screenShariahCompliance, type ShariahResult } from "./shariah";
 
 export interface Candle {
   date: string;
@@ -21,6 +22,7 @@ export interface StockSignal {
   adx: boolean;
   supertrend: boolean;
   isBuy: boolean;
+  shariah: ShariahResult;
 }
 
 const RSI_PERIOD = 14;
@@ -74,45 +76,46 @@ function macd(values: number[]) {
 }
 
 export async function screenUniverse(
-  universe: Stock[]
+  universe: UniverseRow[]
 ): Promise<StockSignal[]> {
 
   const results: StockSignal[] = [];
 
   for (const stock of universe) {
-    const daily = await fetchHistory(stock.ticker);
+    try {
+      const [daily, shariah] = await Promise.all([
+        fetchHistory(stock.ticker),
+        screenShariahCompliance(stock.ticker),
+      ]);
 
-    if (daily.length < 252) continue;
+      if (daily.length < 252) continue;
 
-    const closes = daily.map(c => c.close);
-    const highs = daily.map(c => c.high);
+      const closes = daily.map(c => c.close);
+      const highs = daily.map(c => c.high);
 
-    const price = closes.at(-1)!;
-    const high52 = Math.max(...highs.slice(-252));
-    const high52Distance = +(price / high52 * 100).toFixed(1);
+      const price = closes.at(-1)!;
+      const high52 = Math.max(...highs.slice(-252));
+      const high52Distance = +(price / high52 * 100).toFixed(1);
 
-    const rsiDaily = rsi(closes);
-    const macdDaily = macd(closes);
+      const rsiDaily = rsi(closes);
+      const macdDaily = macd(closes);
 
-    const isBuy =
-      high52Distance >= 80 &&
-      high52Distance <= 98 &&
-      rsiDaily > 55 &&
-      macdDaily;
+      const isBuy =
+        high52Distance >= 80 &&
+        high52Distance <= 98 &&
+        rsiDaily > 55 &&
+        macdDaily;
 
-    results.push({
-      ticker: stock.ticker,
-      name: stock.name,
-      sector: stock.sector,
-      price,
-      high52Distance,
-      rsiDaily,
-      macdDaily,
-      adx: false,
-      supertrend: false,
-      isBuy
-    });
-  }
-
-  return results;
-}
+      results.push({
+        ticker: stock.ticker,
+        name: stock.name,
+        sector: stock.sector,
+        price,
+        high52Distance,
+        rsiDaily,
+        macdDaily,
+        adx: false,
+        supertrend: false,
+        isBuy,
+        shariah,
+      });

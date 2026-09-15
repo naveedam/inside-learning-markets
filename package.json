@@ -3,15 +3,6 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "engines": {
-    "node": "24.x"
-  },
-  "scripts": {
-{
-  "name": "vite_react_shadcn_ts",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -99,6 +90,6 @@
     "@vercel/node": "^3.2.24"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   }
 }
